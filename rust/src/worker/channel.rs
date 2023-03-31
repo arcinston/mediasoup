@@ -48,18 +48,28 @@ pub enum NotificationError {
 }
 
 #[allow(clippy::type_complexity)]
-pub(crate) struct BufferMessagesGuard {
+pub(crate) struct BufferMessagesGuard<'a> {
     target_id: SubscriptionTarget,
     buffered_notifications_for: Arc<Mutex<HashedMap<SubscriptionTarget, Vec<Vec<u8>>>>>,
+    fbs_buffered_notifications_for: Arc<Mutex<HashedMap<SubscriptionTarget, Vec<notification::NotificationRef<'a>>>>>,
     event_handlers_weak: WeakEventHandlers<Arc<dyn Fn(&[u8]) + Send + Sync + 'static>>,
     fbs_event_handlers_weak: WeakEventHandlers<Arc<dyn Fn(notification::NotificationRef<'_>) + Send + Sync + 'static>>,
 }
 
-impl Drop for BufferMessagesGuard {
+impl Drop for BufferMessagesGuard<'a> {
     fn drop(&mut self) {
         let mut buffered_notifications_for = self.buffered_notifications_for.lock();
         if let Some(notifications) = buffered_notifications_for.remove(&self.target_id) {
             if let Some(event_handlers) = self.event_handlers_weak.upgrade() {
+                for notification in notifications {
+                    event_handlers.call_callbacks_with_single_value(&self.target_id, &notification);
+                }
+            }
+        }
+
+        let mut buffered_fbs_notifications_for = self.fbs_buffered_notifications_for.lock();
+        if let Some(notifications) = fbs_buffered_notifications_for.remove(&self.target_id) {
+            if let Some(event_handlers) = self.fbs_event_handlers_weak.upgrade() {
                 for notification in notifications {
                     event_handlers.call_callbacks_with_single_value(&self.target_id, &notification);
                 }
