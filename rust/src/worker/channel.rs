@@ -70,9 +70,7 @@ impl Drop for BufferMessagesGuard {
 
 #[derive(Debug)]
 enum ChannelReceiveMessage<'a> {
-    // TODO: Rename to Notification.
     Notification(notification::NotificationRef<'a>),
-    // TODO: Rename to Response.
     Response(response::ResponseRef<'a>),
     Event(InternalMessage),
 }
