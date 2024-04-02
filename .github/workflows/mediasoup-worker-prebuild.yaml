@@ -4,7 +4,9 @@ name: mediasoup-worker-prebuild
 on:
   release:
     types: [published]
-
+  pull_request:
+    types: [opened, synchronize]
+    
 jobs:
   ci:
     strategy:
